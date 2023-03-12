@@ -77,6 +77,10 @@ local function apply_antiGun(weapon)
 			listener:Disconnect()
 			listener = nil
 		end
+		if settings["antiAAGun"] == false then
+			listener:Disconnect()
+			listener = nil
+		end
 		propWeld.C0 *= CFrame.Angles(0, 2, 0)
 	end)
 end
