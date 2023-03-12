@@ -1,16 +1,21 @@
 local players = game:GetService("Players")
 local httpService = game:GetService("HttpService")
+local collectionService = game:GetService("CollectionService")
+
+collectionService:GetTags
 
 local player = players.LocalPlayer
-local character, head
+local character, head, torso
 
 local function character_added()
 	character = player.Character
 	head = character:WaitForChild("Head")
+	torso = character:WaitForChild("Torso")
 end
 local function character_removed()
 	character = nil
 	head = nil
+	torso = nil
 end
 
 character_added()
@@ -81,7 +86,7 @@ local section = tab:section({
 section:button({
 	name = "Headless",
 	callback = function()
-		if not character:FindFirstChild("Knocked") then
+		if not collectionService:HasTag(character, "Knocked") then
 			notify("spelly", "headless requires you to be ragdolled in order to use it", 2.5)
 		else
 			head:Destroy()
