@@ -2,9 +2,14 @@ local players = game:GetService("Players")
 local httpService = game:GetService("HttpService")
 local collectionService = game:GetService("CollectionService")
 local runService = game:GetService("RunService")
+local userInput = game:GetService("UserInputService")
 
 local player = players.LocalPlayer
 local character, head, torso, hilt
+
+local monsterSpawns = workspace:WaitForChild("MonsterSpawns")
+local triggers = monsterSpawns:WaitForChild("Triggers")
+local last_looted_hidden = false
 
 local function character_added()
 	character = player.Character
@@ -29,7 +34,9 @@ local config = "settings.spelly"
 
 local default = {
 	["menuKeybind"] = Enum.KeyCode.RightControl.Name,
-	["antiAAGun"] = false
+	["lastLootedNotifierKeybind"] = Enum.KeyCode.L.Name,
+	["antiAAGun"] = false,
+	["lastLootedNotifier"] = false
 }
 
 local settings
@@ -66,18 +73,41 @@ end
 
 --#
 
+--# functions
+
+local function secondsToClock(seconds)
+	seconds = tonumber(seconds)
+
+	if seconds <= 0 then
+		return "00:00:00"
+	else
+		local hour = string.format("%02.f", math.floor(seconds/3600))
+		local minute = string.format("%02.f", math.floor(seconds/60 - (hour * 60)))
+		local second = string.format("%02.f", math.floor(seconds - hour * 3600 - minute * 60))
+		return string.format("%sh %sm %ss", hour, minute, second)
+	end
+end
+
+--#
+
 --# modules
 
 local function apply_antiGun(weapon)
 	local propWeld = weapon:WaitForChild("PropWeld")
+	local og_c1 = propWeld.C1
+	local og_c0 = propWeld.C0
 	propWeld.Part0 = torso
 	propWeld.C1 = CFrame.new(1, 3, 0)
 	local listener; listener = runService.RenderStepped:Connect(function()
 		if weapon == nil or weapon.Parent == nil then
+			propWeld.C1 = og_c1
+			propWeld.C0 = og_c0
 			listener:Disconnect()
 			listener = nil
 		end
 		if settings["antiAAGun"] == false then
+			propWeld.C1 = og_c1
+			propWeld.C0 = og_c0
 			listener:Disconnect()
 			listener = nil
 		end
@@ -89,6 +119,39 @@ hilt.ChildAdded:Connect(function(v)
 	if settings["antiAAGun"] == true then
 		apply_antiGun(v)
 	end
+end)
+
+local last_looted = {
+	castle_rock = triggers.CastleRockSnake.LastSpawned,
+	deep_forest = triggers.evileye1.LastSpawned,
+	last_bastion = triggers.evileye2.LastSpawned,
+	temple_of_fire = triggers.MazeSnakes.LastSpawned
+}
+
+local last_looted_label = Drawing.new("Text")
+
+userInput.InputBegan:Connect(function(key, gpe)
+	if key.KeyCode == Enum.KeyCode[settings["lastLootedNotifierKeybind"]] and not gpe then
+		last_looted_hidden = not last_looted_hidden
+		last_looted_label.Transparency = (last_looted_hidden and 1) or 0
+	end
+end)
+
+runService.RenderStepped:Connect(function()
+	local delta = {
+		castle_rock = os.time() - last_looted.castle_rock.Value,
+		deep_forest = os.time() - last_looted.deep_forest.Value,
+		last_bastion = os.time() - last_looted.last_bastion.Value,
+		temple_of_fire = os.time() - last_looted.temple_of_fire.Value
+	}
+	local viewportSize = workspace.CurrentCamera.ViewportSize
+	last_looted_label.Text = string.format("castle_rock: %s ago\ndeep_forest: %s ago\nlast_bastion: %s ago\ntemple_of_fire: %s ago", secondsToClock(delta.castle_rock), secondsToClock(delta.deep_forest), secondsToClock(delta.last_bastion), secondsToClock(delta.temple_of_fire))
+	last_looted_label.Outline = true
+	last_looted_label.Visible = true
+	last_looted_label.Color = Color3.new(1, 1, 1)
+	last_looted_label.ZIndex = 3
+	last_looted_label.Size = 20
+	last_looted_label.Position = Vector2.new(10, viewportSize.Y - last_looted_label.TextBounds.Y - 91)
 end)
 
 --#
@@ -107,12 +170,12 @@ local window = library:new({
 local tab = window:page({
 	name = "Main"
 })
-local section = tab:section({
+local misc = tab:section({
 	name = "Misc",
 	side = "left",
 	size = 150
 })
-section:toggle({
+misc:toggle({
 	name = "Anti AA-Gun",
 	def = default["antiAAGun"],
 	callback = function(value)
@@ -127,7 +190,7 @@ section:toggle({
 		end
 	end,
 })
-section:button({
+misc:button({
 	name = "Headless",
 	callback = function()
 		if not collectionService:HasTag(character, "Knocked") then
@@ -137,13 +200,39 @@ section:button({
 		end
 	end,
 })
-section:keybind({
+
+local gui = tab:section({
+	name = "GUI",
+	side = "right",
+	size = 150
+})
+misc:toggle({
+	name = "Last Looted Notifier",
+	def = default["lastLootedNotifier"],
+	callback = function(value)
+		changeValue("lastLootedNotifier", value)
+	end,
+})
+
+local keybinds = tab:section({
+	name = "GUI",
+	side = "left",
+	size = 150
+})
+keybinds:keybind({
 	name = "Menu Keybind",
 	def = default["menuKeybind"],
 	callback = function(key)
 		print(key)
 		changeValue("menuKeybind", key.Name)
 		window.key = key
+	end,
+})
+misc:keybind({
+	name = "Last Looted Notifier Keybind",
+	def = default["lastLootedNotifierKeybind"],
+	callback = function(key)
+		changeValue("lastLootedNotifierKeybind", key.Name)
 	end,
 })
 
