@@ -25,7 +25,7 @@ player.CharacterRemoving:Connect(character_removed)
 local config = "settings.spelly"
 
 local default = {
-	["menuKeybind"] = Enum.KeyCode.RightControl
+	["menuKeybind"] = Enum.KeyCode.RightControl.Name
 }
 
 local settings
@@ -70,7 +70,7 @@ local window = library:new({
 	font = Enum.Font.RobotoMono,
 	name = "Spelly HUB",
 	color = BrickColor.Random().Color,
-	key = default["menuKeybind"]
+	key = Enum.KeyCode[default["menuKeybind"]]
 })
 
 local tab = window:page({
@@ -95,7 +95,8 @@ section:keybind({
 	name = "Menu Keybind",
 	def = default["menuKeybind"],
 	callback = function(key)
-		changeValue("menuKeybind", key)
+		print(key)
+		changeValue("menuKeybind", key.Name)
 		window.key = key
 	end,
 })
