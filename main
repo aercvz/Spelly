@@ -2,8 +2,6 @@ local players = game:GetService("Players")
 local httpService = game:GetService("HttpService")
 local collectionService = game:GetService("CollectionService")
 
-collectionService:GetTags
-
 local player = players.LocalPlayer
 local character, head, torso
 
